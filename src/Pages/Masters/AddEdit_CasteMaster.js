@@ -1,0 +1,99 @@
+import React, { useState, useEffect } from 'react';
+import { Formik, Form, Field, ErrorMessage } from 'formik';
+import * as Yup from 'yup';
+import { Col, Row } from 'reactstrap';
+import { useDispatch } from 'react-redux';
+import { useLocation } from 'react-router-dom';
+import { Fn_AddEditData, Fn_DisplayData } from '../../store/Functions';
+import { API_WEB_URLS } from '../../constants/constAPI';
+import { useNavigate } from 'react-router-dom';
+
+function AddEdit_CasteMaster() {
+  const API_URL_SAVE = `${API_WEB_URLS.CasteMaster}/0/token`;  
+  const API_URL_EDIT = `${API_WEB_URLS.MASTER}/0/token/CasteMasterId/Id`;  
+  
+  const [state, setState] = useState({
+    id: 0,
+    formData: {
+      Name: '',
+    },
+    isProgress: true,
+  });
+
+  const dispatch = useDispatch();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const Id = (location.state && location.state.Id) || 0;
+    
+    if (Id > 0) {
+      setState(prevState => ({
+        ...prevState,
+        id: Id
+      }));
+      Fn_DisplayData(dispatch, setState, Id, API_URL_EDIT);
+    }
+  }, [location.state, dispatch]);
+
+  const validationSchema = Yup.object({
+    Name: Yup.string().required('Name is required'),
+     
+  });
+
+   
+  const handleSubmit = async (values) => {
+    const obj = JSON.parse(localStorage.getItem('authUser'));
+    const formData = new FormData();
+    formData.append("Name", values.Name);
+    formData.append('UserId', obj?.Id || 0);
+    
+    try {
+      await Fn_AddEditData(
+        dispatch,
+        setState,
+        { arguList: { id: state.id, formData } },
+        API_URL_SAVE,
+        true,
+        "memberid",
+        navigate,
+        "/CasteMaster"
+      );
+    } catch (error) {
+      console.error("Error submitting data:", error);
+      // Check if the error message contains "already exists" or similar
+      if (error && error.message && error.message.toLowerCase().includes('already exists')) {
+        alert("The Name is already Exists");
+      } else {
+        alert("The Name is already Exists");
+      }
+    }
+  };
+
+  return (
+    <div className='page-content'>
+      <Formik
+        initialValues={state.formData}
+        enableReinitialize={true}
+        validationSchema={validationSchema}
+        onSubmit={(values) => handleSubmit(values)}
+      >
+        {({ setFieldValue }) => (
+          <Form className="form-horizontal">
+            <Row>
+              <Col lg='6' className="mb-3">
+                <label htmlFor="Name" className="form-label">Name</label>
+                <Field className="form-control" type="text" name="Name" />
+                <ErrorMessage name="Name" component="div" className="text-danger" />
+              </Col>
+            </Row>
+             
+            <button type="submit" className="btn btn-primary btn-block">Submit</button>
+          </Form>
+        )}
+      </Formik>
+    </div>
+  );
+}
+
+export default AddEdit_CasteMaster;
